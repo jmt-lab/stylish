@@ -1,0 +1,75 @@
+# stylish Rust lints
+#
+# Paste into Cargo.toml (or use [workspace.lints] at a workspace root and add
+# `[lints] workspace = true` to each member). Enforces the machine-checkable rules in
+# styleguide/rust/. Everything is "warn"; make CI strict with:
+#
+#     cargo clippy --all-targets --all-features -- -D warnings
+#
+# Silence a lint locally with a reason (EXPECT-LINT-WITH-REASON):
+#
+#     #[expect(clippy::unwrap_used, reason = "the regex is a literal and always compiles")]
+#
+# Lints marked [lib] fit libraries; applications can drop them.
+# Adapted from BeautifulRust lints/lints.toml (MIT, Copyright (c) 2026 Morgan Linton).
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "warn"          # UNSAFE-OP-IN-UNSAFE-FN
+missing_debug_implementations = "warn"   # DEBUG-ON-PUBLIC-TYPES
+missing_docs = "warn"                    # PUBLIC-ITEM-DOCS
+unreachable_pub = "warn"                 # VISIBILITY-INTENTIONAL
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# Panics (EXPECT-WITH-CONTEXT, PANIC-JUSTIFICATION)
+unwrap_used = "warn"
+expect_used = "allow"                    # expect with an invariant message is sanctioned
+panic_in_result_fn = "warn"
+missing_panics_doc = "warn"              # [lib]
+missing_errors_doc = "allow"             # NO-ERROR-DOCS: error types document failures
+
+# Docs on private items too (PRIVATE-ITEM-DOCS)
+missing_docs_in_private_items = "warn"
+
+# Suppressions explain themselves (EXPECT-LINT-WITH-REASON; needs rust-version 1.81+)
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+
+# Unsafe (UNSAFE-JUSTIFICATION, UNSAFE-OP-IN-UNSAFE-FN)
+undocumented_unsafe_blocks = "warn"
+multiple_unsafe_ops_per_block = "warn"
+
+# API shape
+fn_params_excessive_bools = "warn"       # ENUM-OVER-BOOL-PARAMS
+struct_excessive_bools = "warn"          # MAKE-INVALID-STATES-UNREPRESENTABLE
+clone_on_ref_ptr = "warn"                # write Arc::clone(&x)
+redundant_clone = "warn"                 # PREFER-BORROW-OVER-CLONE
+rc_buffer = "warn"
+new_without_default = "warn"             # DEFAULT-WITH-NEW
+len_without_is_empty = "warn"            # LEN-WITH-IS-EMPTY
+should_implement_trait = "warn"          # IMPLEMENT-STD-TRAITS
+
+# Idioms
+string_add = "warn"                      # FORMAT-FOR-CONCATENATION
+wildcard_imports = "warn"                # NO-GLOB-IMPORTS (paths containing `prelude` are exempt)
+map_err_ignore = "warn"                  # SNAFU-CONTEXT-SELECTORS
+
+# Leftovers (LOG-NOT-PRINT)
+dbg_macro = "warn"
+todo = "warn"
+print_stdout = "warn"                    # [lib]
+print_stderr = "warn"                    # [lib]
+
+# Lossy casts (FROM-OVER-AS-CASTS)
+as_conversions = "warn"
+cast_possible_truncation = "warn"
+cast_sign_loss = "warn"
+
+# Pedantic noise
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+module_inception = "allow"
+enum_glob_use = "allow"                  # use Enum::* inside a function that matches on it
