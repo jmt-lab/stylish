@@ -1,4 +1,5 @@
 ---
+type: Skill
 name: rust-review
 description: >-
   Review existing Rust code against the stylish Rust styleguide and produce a prioritized
@@ -29,7 +30,7 @@ or with the argosy `search_rules` tool if it is available.
 - **Edition and MSRV.** Read them from `Cargo.toml`, so you don't recommend features the
   project can't use.
 - **Frameworks.** If the crate depends on `bevy` or `bevy_ecs`, first read
-  `../rust-best-practices/references/bevy.md` and the `styleguide/rust/bevy/` rules.
+  `skill/rust-best-practices/references/bevy.md` and the `styleguide/rust/bevy/` rules.
   Bevy's conventions (by-value system parameters, the prelude, plain-data components)
   are not findings.
 
@@ -190,5 +191,5 @@ Rules for each finding:
 ## 5. Offer the lints
 
 If the project lacks a `[lints]` table, end by suggesting
-`../rust-best-practices/assets/lints.toml` and `clippy.toml` (LINTS-IN-CARGO-TOML). Name
+`skill/rust-best-practices/references/lints.md` and `clippy.md` (LINTS-IN-CARGO-TOML). Name
 two or three findings from this review that the lints would have caught.

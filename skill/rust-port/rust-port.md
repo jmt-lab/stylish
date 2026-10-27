@@ -1,4 +1,5 @@
 ---
+type: Skill
 name: rust-port
 description: >-
   Port code from C, C++, Python, Go, JavaScript, or TypeScript into idiomatic Rust that

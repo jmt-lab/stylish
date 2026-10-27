@@ -1,3 +1,10 @@
+---
+type: Reference
+description: The stylish Rust [lints] table to paste into Cargo.toml (LINTS-IN-CARGO-TOML).
+---
+# lints.toml
+
+```toml
 # stylish Rust lints
 #
 # Paste into Cargo.toml (or use [workspace.lints] at a workspace root and add
@@ -73,3 +80,4 @@ module_name_repetitions = "allow"
 must_use_candidate = "allow"
 module_inception = "allow"
 enum_glob_use = "allow"                  # use Enum::* inside a function that matches on it
+```

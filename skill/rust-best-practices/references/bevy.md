@@ -1,3 +1,7 @@
+---
+type: Reference
+description: Digest of Bevy ECS conventions that override general Rust advice in Bevy crates.
+---
 <!-- Adapted from BeautifulRust skills/rust-best-practices/references/bevy.md
      https://github.com/morganlinton/BeautifulRust (MIT, Copyright (c) 2026 Morgan Linton). -->
 

@@ -1,4 +1,5 @@
 ---
+type: Skill
 name: rust-best-practices
 description: >-
   Write idiomatic, robust, maintainable Rust that follows the stylish Rust styleguide. Use
@@ -52,7 +53,8 @@ cargo doc --no-deps
 - Never put `#![deny(warnings)]` in source (NO-DENY-WARNINGS-IN-SOURCE). Enforce it in CI
   instead (DENY-WARNINGS-CI).
 - Configure lints once in `Cargo.toml` (LINTS-IN-CARGO-TOML). If a project has none,
-  offer `assets/lints.toml` and `assets/clippy.toml` from this skill.
+  offer `skill/rust-best-practices/references/lints.md` and
+  `skill/rust-best-practices/references/clippy.md`.
 
 ## 3. Ownership and borrowing
 
@@ -327,8 +329,9 @@ that:
 
 ## Framework notes
 
-- **Bevy:** if `Cargo.toml` depends on `bevy` or `bevy_ecs`, read `references/bevy.md`
-  and the `styleguide/rust/bevy/` rules first. Some general advice is wrong for systems.
+- **Bevy:** if `Cargo.toml` depends on `bevy` or `bevy_ecs`, read
+  `skill/rust-best-practices/references/bevy.md` and the `styleguide/rust/bevy/` rules
+  first. Some general advice is wrong for systems.
 
 ## Sources
 
