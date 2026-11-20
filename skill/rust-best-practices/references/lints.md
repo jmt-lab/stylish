@@ -26,6 +26,11 @@ missing_debug_implementations = "warn"   # DEBUG-ON-PUBLIC-TYPES
 missing_docs = "warn"                    # PUBLIC-ITEM-DOCS
 unreachable_pub = "warn"                 # VISIBILITY-INTENTIONAL
 rust_2018_idioms = { level = "warn", priority = -1 }
+static_mut_refs = "warn"                # NO-STATIC-MUT (denied in edition 2024)
+missing_unsafe_on_extern = "warn"       # UNSAFE-EXTERN-BLOCKS (pre-2024 crates)
+unsafe_attr_outside_unsafe = "warn"     # UNSAFE-ATTRIBUTES (pre-2024 crates)
+# DECLARE-CHECK-CFG: list custom cfgs your code tests, e.g.
+# unexpected_cfgs = { level = "warn", check-cfg = ["cfg(loom)"] }
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
@@ -59,6 +64,10 @@ new_without_default = "warn"             # DEFAULT-WITH-NEW
 len_without_is_empty = "warn"            # LEN-WITH-IS-EMPTY
 should_implement_trait = "warn"          # IMPLEMENT-STD-TRAITS
 
+# Discarded errors (NEVER-SILENTLY-DISCARD-ERRORS)
+let_underscore_must_use = "warn"
+unused_result_ok = "warn"
+
 # Idioms
 string_add = "warn"                      # FORMAT-FOR-CONCATENATION
 wildcard_imports = "warn"                # NO-GLOB-IMPORTS (paths containing `prelude` are exempt)
@@ -74,6 +83,9 @@ print_stderr = "warn"                    # [lib]
 as_conversions = "warn"
 cast_possible_truncation = "warn"
 cast_sign_loss = "warn"
+
+# Published crates (CARGO-PACKAGE-METADATA)
+cargo_common_metadata = "warn"           # [lib]
 
 # Pedantic noise
 module_name_repetitions = "allow"

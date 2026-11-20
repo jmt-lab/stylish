@@ -1,8 +1,9 @@
 ---
 type: Styleguide Rule
 description: |-
-  When checking multiple conditions, match is clearer than
-  nested if-let chains.
+  When checking several patterns over the same values, match is
+  clearer than nested if-let blocks. For a mix of patterns and boolean
+  conditions, use a let chain instead (LET-CHAINS).
 language: rust
 category: control_flow
 rule_id: MATCH-OVER-IF-LET-CHAIN
@@ -12,8 +13,9 @@ tags:
 - pattern-matching
 - clarity
 ---
-When checking multiple conditions, match is clearer than
-nested if-let chains.
+When checking several patterns over the same values, match is
+clearer than nested if-let blocks. For a mix of patterns and boolean
+conditions, use a let chain instead (LET-CHAINS).
 
 ## Good
 

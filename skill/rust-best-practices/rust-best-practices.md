@@ -4,8 +4,8 @@ name: rust-best-practices
 description: >-
   Write idiomatic, robust, maintainable Rust that follows the stylish Rust styleguide. Use
   this skill whenever you write, refactor, debug, or explain Rust code: new crates,
-  modules, functions, structs, traits, error types, async code, unsafe or FFI code,
-  Cargo.toml, tests, or rustdoc. Trigger on any mention of Rust, cargo, crates, .rs files,
+  modules, functions, structs, traits, error types, async code, unsafe or FFI code, serde
+  types, tracing, Cargo.toml, tests, or rustdoc. Trigger on any mention of Rust, cargo, crates, .rs files,
   the borrow checker, lifetimes, traits, clippy, or rustfmt, even when the user does not
   ask for "best practices" or "idiomatic" code.
 ---
@@ -54,7 +54,8 @@ cargo doc --no-deps
   instead (DENY-WARNINGS-CI).
 - Configure lints once in `Cargo.toml` (LINTS-IN-CARGO-TOML). If a project has none,
   offer `skill/rust-best-practices/references/lints.md` and
-  `skill/rust-best-practices/references/clippy.md`.
+  `skill/rust-best-practices/references/clippy.md`. Declare custom cfgs so typos warn
+  (DECLARE-CHECK-CFG).
 
 ## 3. Ownership and borrowing
 
@@ -75,8 +76,12 @@ cargo doc --no-deps
 - **Take ownership by value only when you need it** (TAKE-OWNERSHIP-BY-VALUE). Never take
   `&T` and then clone it internally. Return values instead of using out-parameters
   (RETURN-VALUES-NOT-OUT-PARAMS).
-- **Prefer owned struct fields** (PREFER-OWNED-STRUCT-FIELDS). Give lifetimes on types
-  descriptive names (DESCRIPTIVE-LIFETIMES).
+- **Prefer owned struct fields** (PREFER-OWNED-STRUCT-FIELDS). Let elision handle
+  lifetimes where it can and write `'_` in type paths (RELY-ON-LIFETIME-ELISION). Give the
+  explicit ones on types descriptive names (DESCRIPTIVE-LIFETIMES).
+- **Return `Cow`** when a function usually passes input through and only sometimes
+  allocates (COW-FOR-CONDITIONAL-OWNERSHIP). Store data that never grows as `Box<[T]>`,
+  `Box<str>`, or `Arc<str>` (BOXED-SLICE-FOR-FROZEN-DATA).
 - **Freeze after setup** with `let data = data;` (FREEZE-AFTER-SETUP).
 - **Keep smart pointers out of public signatures** (NO-SMART-POINTERS-IN-PUBLIC-API).
   For a service that must be shared, put `Arc<Inner>` inside it (CHEAP-CLONE-SERVICES).
@@ -110,7 +115,18 @@ cargo doc --no-deps
 - Use the strongest std type, such as `Path`, `Duration`, or `SocketAddr`
   (STRONGEST-STD-TYPE).
 - Use `bitflags` for independent flags (BITFLAGS-FOR-INDEPENDENT-FLAGS).
+- Use enums, newtypes, and parsed types instead of strings for closed sets, IDs, and
+  structured text (NO-STRINGLY-TYPED-APIS).
+- Encode ordered protocols (connect, then log in, then query) as typestates when misuse is
+  a real risk (TYPESTATE-FOR-PROTOCOLS).
 - Convert with `From`/`TryFrom` rather than `as` (FROM-OVER-AS-CASTS).
+
+### Numbers
+
+- Make overflow intent explicit on unbounded input with `checked_*`, `saturating_*`,
+  `clamp`, or `wrapping_*` (EXPLICIT-OVERFLOW-HANDLING).
+- Never compare computed floats with `==`. Use a tolerance, and sort with `total_cmp`
+  (NO-FLOAT-EQUALITY).
 
 ### Standard traits
 
@@ -125,7 +141,8 @@ cargo doc --no-deps
   (OPTIONS-STRUCT-DEFAULT).
 - Hand-written `Ord`, `PartialEq`, and `Hash` must agree (CONSISTENT-ORD-EQ-HASH).
 - Implement std traits instead of ad-hoc methods, e.g. `FromStr` (IMPLEMENT-STD-TRAITS).
-  Implement `From`, never `Into` (IMPL-FROM-NOT-INTO).
+  Implement `From`, never `Into` (IMPL-FROM-NOT-INTO), and `TryFrom` for fallible
+  conversions instead of `from_x() -> Option` (TRYFROM-FOR-FALLIBLE-CONVERSIONS).
 - Collections get `FromIterator`, `Extend`, and `IntoIterator` (COLLECTION-TRAITS).
 - Put no trait bounds on struct definitions (NO-STRUCT-TRAIT-BOUNDS).
 - Overload operators only for their mathematical meaning (OPERATOR-OVERLOAD-MATH-ONLY).
@@ -158,14 +175,21 @@ cargo doc --no-deps
   generics on services (NO-NESTED-GENERIC-SERVICES).
 - Decide object safety early (DECIDE-OBJECT-SAFETY-EARLY). Keep required methods minimal
   and give the rest defaults (MINIMAL-REQUIRED-TRAIT-METHODS).
+- Use an associated type when each impl has exactly one choice, and a generic parameter
+  when one type implements the trait many ways (ASSOCIATED-TYPE-VS-GENERIC-PARAMETER).
+  Wrap foreign types in a newtype to implement foreign traits (NEWTYPE-FOR-FOREIGN-TRAITS).
 - Use the most general `Fn*` bound, with the closure as the last parameter
-  (CLOSURE-BOUNDS-MOST-GENERAL).
+  (CLOSURE-BOUNDS-MOST-GENERAL). Return closures as `impl Fn`, not `Box<dyn Fn>`
+  (RETURN-IMPL-FN).
 - Libraries return iterators and accept `impl IntoIterator`
   (RETURN-ITERATORS-IN-LIBRARIES, ACCEPT-INTOITERATOR-IN-LIBRARIES). Use `impl Into<T>`
   sparingly (IMPL-INTO-SPARINGLY). Accept `impl RangeBounds` (RANGEBOUNDS-PARAMS) and
   `impl Read`/`impl Write` (ACCEPT-READ-WRITE).
 - Reach for functions, types, and traits before `macro_rules!`, and `macro_rules!` before
   proc macros (PREFER-FUNCTIONS-OVER-MACROS, MACROS-DONT-LIE, MACRO-HYGIENE).
+  `macro_rules!` uses `$crate::` and `::core::` paths (MACRO-DOLLAR-CRATE-PATHS) and
+  precise fragment specifiers (MACRO-FRAGMENT-SPECIFIERS). Proc macros report spanned
+  `syn::Error`s and never panic (PROC-MACRO-SPANNED-ERRORS).
 
 ### Refactoring someone else's code
 
@@ -199,6 +223,8 @@ cargo doc --no-deps
   (EXPECT-WITH-CONTEXT). Pattern-match instead of check-then-unwrap
   (PATTERN-MATCH-OVER-CHECK-UNWRAP). Give assertions context messages
   (ASSERT-CONTEXT-MESSAGES, PANIC-WITH-MESSAGE).
+- Never discard an error with `let _ =`, `.ok()`, or an empty `Err` arm without a
+  comment explaining why (NEVER-SILENTLY-DISCARD-ERRORS).
 - A poisoned lock is fatal; never use `into_inner` (NO-POISONED-MUTEX-ACCESS).
 - Never use `catch_unwind` for control flow (NO-CATCH-UNWIND).
 - Destructors never fail, panic, or block; provide `close()` (DESTRUCTORS-NEVER-FAIL).
@@ -215,6 +241,15 @@ cargo doc --no-deps
   (OPTION-COMBINATORS).
 - Use guard clauses: `let ... else` (LET-ELSE-GUARDS), early returns and `?`
   (EARLY-RETURN-GUARDS, QUESTION-MARK-EARLY).
+- Patterns: use `matches!` for boolean tests (MATCHES-MACRO-FOR-BOOLEAN-TESTS), let chains
+  instead of nested `if let` (LET-CHAINS), and `@` to bind a matched value (AT-BINDINGS).
+- Collections: use `Vec` by default, `VecDeque` or `BinaryHeap` when the access pattern
+  calls for them, and never `LinkedList` (VEC-BY-DEFAULT). Pick the map by access pattern
+  (CHOOSE-MAP-BY-ACCESS-PATTERN), use sets for membership (SET-FOR-MEMBERSHIP), and the
+  entry API for insert-or-update (ENTRY-API).
+- Use `const` for inlined values and `static` only for one address or interior mutability
+  (CONST-VS-STATIC). Use `const { }` blocks for compile-time values and asserts in
+  expressions (INLINE-CONST-BLOCKS).
 - Use `format!`/`write!` instead of `+` chains (FORMAT-FOR-CONCATENATION).
 - Annotate types where inference hides intent (ANNOTATE-INFERRED-TYPES).
 - Bind RAII guards to a name; `let _ =` drops immediately (NAMED-DROP-GUARDS).
@@ -230,7 +265,8 @@ cargo doc --no-deps
     (NO-GLOB-IMPORTS).
 - Replace magic numbers with named, documented consts (NAMED-CONSTANTS,
   DOCUMENT-MAGIC-VALUES).
-- Log with `tracing` or `log`, not `println!`/`dbg!` (LOG-NOT-PRINT).
+- Log with `tracing` or `log`, not `println!`/`dbg!` (LOG-NOT-PRINT). See section 10 for
+  observability.
 
 ## 7. Concurrency and async
 
@@ -238,9 +274,25 @@ cargo doc --no-deps
 - Prefer message passing (PREFER-MESSAGE-PASSING). Keep lock scopes short, never call
   callbacks under a lock, and never return guards (LOCK-SCOPE-DISCIPLINE). Never hold a
   guard across `.await` (NO-LOCK-ACROSS-AWAIT).
-- Write `async fn` (ASYNC-FN-OVER-IMPL-FUTURE). CPU-bound work yields or goes to
-  `spawn_blocking` (YIELD-IN-CPU-BOUND-ASYNC).
+- Write `async fn` (ASYNC-FN-OVER-IMPL-FUTURE), including in traits
+  (NATIVE-ASYNC-FN-IN-TRAITS), and take async callbacks as `impl AsyncFn`
+  (ASYNC-CLOSURE-BOUNDS).
+- Never block the executor: CPU-bound work yields or goes to `spawn_blocking`
+  (YIELD-IN-CPU-BOUND-ASYNC), and blocking I/O uses async APIs (NO-BLOCKING-IN-ASYNC).
+- Run independent futures with `join!`/`try_join!` (JOIN-INDEPENDENT-FUTURES). Track
+  every spawned task in a `JoinHandle` or `JoinSet` (TRACK-SPAWNED-TASKS), give
+  long-running tasks a shutdown signal (GRACEFUL-SHUTDOWN), and put a timeout on every
+  external await (TIMEOUT-EXTERNAL-AWAITS).
+- Only cancel-safe futures race in a looping `select!` (CANCEL-SAFE-SELECT).
+- Use bounded channels (BOUNDED-CHANNELS), chosen by pattern: `mpsc`, `oneshot`,
+  `broadcast`, or `watch` (CHANNEL-MATCHES-PATTERN).
+- Threads: use `thread::scope` to borrow stack data (SCOPED-THREADS-FOR-BORROWS) and
+  rayon for data parallelism (RAYON-FOR-DATA-PARALLELISM). Use `Mutex` by default and
+  `RwLock` only for measured read-heavy contention (RWLOCK-ONLY-WHEN-READ-HEAVY). Justify
+  every atomic `Ordering` (ATOMIC-ORDERING-DELIBERATE).
 - Libraries don't spawn threads or assume a runtime (LIBRARIES-DONT-ASSUME-RUNTIME).
+- For a whole async service (runtime setup, task layout, shutdown, async tests), use the
+  `rust-async` skill.
 - Avoid global mutable state (AVOID-GLOBAL-MUTABLE-STATE) and code that runs before
   `main` (NO-CODE-BEFORE-MAIN).
 
@@ -248,15 +300,23 @@ cargo doc --no-deps
 
 - Avoid `unsafe`. When you need it, wrap it in a small safe abstraction and justify it
   (ENCAPSULATE-UNSAFE).
-- Every block gets a `// SAFETY:` comment (UNSAFE-JUSTIFICATION). Every `unsafe fn` gets
-  a `# Safety` section (DOCUMENT-UNSAFE-CONTRACTS) and uses `unsafe_op_in_unsafe_fn`
-  (UNSAFE-OP-IN-UNSAFE-FN).
+- Every block gets a `// SAFETY:` comment (UNSAFE-JUSTIFICATION) and covers one operation
+  (MINIMIZE-UNSAFE-SCOPE). Every `unsafe fn` gets a `# Safety` section
+  (DOCUMENT-UNSAFE-CONTRACTS) and uses `unsafe_op_in_unsafe_fn` (UNSAFE-OP-IN-UNSAFE-FN).
+- Use `MaybeUninit` for uninitialized memory, never `mem::uninitialized` or `mem::zeroed`
+  on types with invalid zero patterns (MAYBEUNINIT-FOR-UNINIT-MEMORY).
+- Never use `static mut` (NO-STATIC-MUT).
 - Mark a function `unsafe` only when misuse can cause UB (UNSAFE-MEANS-UB).
 - Don't use `transmute` tricks or `unsafe impl Send` (NO-TRANSMUTE-SHORTCUTS). Never ship
   an unsound safe API; the module is the soundness boundary (NO-UNSOUND-ABSTRACTIONS).
 - Run Miri over unsafe code (MIRI-FOR-UNSAFE).
 - FFI uses `repr(C)`, `CString`, RAII handles, null checks, and no unwinding across the
   boundary (FFI-SAFE-BOUNDARY). Bindings live in `-sys` crates (SYS-CRATE-SPLIT).
+  Newtypes that cross the boundary are `#[repr(transparent)]`
+  (REPR-TRANSPARENT-FFI-NEWTYPES).
+- Use Rust 2024 syntax: `unsafe extern` blocks with `safe`/`unsafe` items
+  (UNSAFE-EXTERN-BLOCKS), and `#[unsafe(no_mangle)]` with a SAFETY comment
+  (UNSAFE-ATTRIBUTES).
 - No unstable features (NO-UNSTABLE-FEATURES). Don't touch `#[doc(hidden)]` items you
   don't own (NO-DOC-HIDDEN-ACCESS).
 
@@ -268,27 +328,52 @@ cargo doc --no-deps
 - Name a module after its primary item (FILE-MATCHES-MODULE, ONE-STRUCT-PER-FILE-COMPLEX).
   Non-leaf modules only declare and re-export (NO-IMPL-IN-NON-LEAF-MODULES,
   PUBLIC-API-MOD-RS).
+- Several executables go in `src/bin/` over a shared `lib.rs`
+  (SRC-BIN-FOR-MULTIPLE-BINARIES). Crate names carry no `-rs` suffix
+  (CRATE-NAME-NO-RS-SUFFIX).
 - Features are additive and bare-named (ADDITIVE-FEATURES, BARE-FEATURE-NAMES). Put mocks
-  behind `test-util` (TEST-UTIL-FEATURE).
+  behind `test-util` (TEST-UTIL-FEATURE), and serde support in libraries behind a `serde`
+  feature (SERDE-BEHIND-FEATURE).
+- Keep `build.rs` small, deterministic, and offline (MINIMAL-BUILD-SCRIPTS). Published
+  crates fill in `[package]` metadata (CARGO-PACKAGE-METADATA).
 - Use version ranges, never `*` (DEPENDENCY-VERSION-RANGES). Commit `Cargo.lock` for
   binaries (COMMIT-LOCKFILE-FOR-BINARIES). Keep dependencies few
   (MINIMIZE-DEPENDENCIES) and audit them (CARGO-AUDIT-SECURITY, CARGO-DENY).
 - Use the latest edition and a deliberate MSRV (LATEST-EDITION-AND-MSRV, MSRV-POLICY).
   Follow semver (SEMVER-ADHERENCE).
 
-## 10. Documentation and comments
+## 10. Serialization and observability
+
+- serde:
+  - Set the wire naming with one `rename_all` (SERDE-RENAME-ALL).
+  - Give fields added later a `default` (SERDE-DEFAULT-FOR-COMPATIBILITY).
+  - Skip empty optional fields (SERDE-SKIP-EMPTY-FIELDS).
+  - Choose enum tagging on purpose and avoid `untagged` (SERDE-ENUM-TAGGING-DELIBERATE).
+  - Deny unknown fields in files you own (SERDE-DENY-UNKNOWN-FIELDS).
+  - Validate while deserializing with `try_from` (SERDE-VALIDATE-ON-DESERIALIZE).
+  - Customize a single field with `with` (SERDE-WITH-FOR-FOREIGN-FORMATS).
+- tracing:
+  - Libraries never install a subscriber (LIBRARIES-NEVER-INSTALL-SUBSCRIBERS).
+  - Record structured fields with constant messages (STRUCTURED-LOG-FIELDS).
+  - Give each request or job a span (INSTRUMENT-UNITS-OF-WORK).
+  - Use levels consistently (MEANINGFUL-LOG-LEVELS).
+  - Log each error once, with its source chain (LOG-ERRORS-ONCE-WITH-CHAIN).
+  - Never log secrets or personal data (NEVER-LOG-SECRETS).
+
+## 11. Documentation and comments
 
 - Document every item, public and private (PUBLIC-ITEM-DOCS, PRIVATE-ITEM-DOCS), and
   every module with `//!` (MODULE-LEVEL-DOCS). Start with a summary line under 120
   characters, followed by a blank line (SUMMARY-LINE-LENGTH, SUMMARY-SEPARATION).
 - Write sections in the order Examples, Panics, Safety (DOC-SECTION-ORDER). Don't write
   parameter tables or `# Errors` (NO-PARAM-DOCS, NO-ERROR-DOCS).
-- Examples use `?`, never `unwrap()` (DOC-EXAMPLES-USE-QUESTION-MARK). Use intra-doc links
-  (INTRA-DOC-LINKS).
+- Examples use `?`, never `unwrap()` (DOC-EXAMPLES-USE-QUESTION-MARK), and hide setup
+  lines with `# ` (HIDE-DOC-EXAMPLE-SETUP). Use intra-doc links (INTRA-DOC-LINKS).
+  Published libraries use the README as crate docs (CRATE-README-AS-DOCS).
 - Comments explain why, not what (EXPLAIN-WHY-NOT-WHAT, AVOID-OBVIOUS-COMMENTS).
   TODOs carry context (TODO-WITH-CONTEXT). No design journals (NO-META-DESIGN-DOCS).
 
-## 11. Tests
+## 12. Tests
 
 - Unit tests go in `#[cfg(test)] mod tests` and integration tests in `tests/`
   (INTEGRATION-TEST-LOCATION).
@@ -299,8 +384,13 @@ cargo doc --no-deps
 - I/O must be mockable (MOCKABLE-IO, MOCK-DEPENDENCIES). Fuzz untrusted parsers
   (FUZZ-UNTRUSTED-INPUT).
 - Test the feature combinations that matter (TEST-FEATURE-COMBINATIONS).
+- Write async tests with `#[tokio::test]` and paused time (TOKIO-TEST-FOR-ASYNC).
+- Model-check lock-free code with loom (LOOM-FOR-CONCURRENCY-PRIMITIVES).
+- Snapshot large output with insta (SNAPSHOT-TESTS-FOR-COMPLEX-OUTPUT).
+- Clean up fixtures through `Drop` (RAII-TEST-FIXTURES).
+- Benchmark with criterion and `black_box` (BLACK-BOX-IN-BENCHMARKS).
 
-## 12. Performance, in order
+## 13. Performance, in order
 
 Design for usability first, then measure (PROFILE-FIRST, MEASURE-DONT-ASSUME). After
 that:
@@ -309,10 +399,15 @@ that:
 - Reuse buffers (ALLOCATION-CONSCIOUS).
 - Use zero-copy parsing (ZERO-COPY-PARSING).
 - Box large types (BOX-LARGE-TYPES).
-- Inline proven hot paths (INLINE-HOT-PATHS).
+- Reuse allocations with `clone_from` (CLONE-FROM-REUSE).
+- Buffer I/O (BUFFERED-IO).
+- Inline proven hot paths (INLINE-HOT-PATHS) and mark cold ones `#[cold]`
+  (COLD-UNLIKELY-PATHS).
+- Use a fast hasher for trusted keys (FAST-HASHER-FOR-TRUSTED-KEYS).
+- Use `target-cpu` and PGO only for known hardware (TARGET-CPU-ONLY-FOR-KNOWN-HARDWARE).
 - Benchmark critical paths (BENCHMARK-CRITICAL-PATHS).
 
-## 13. Final checklist
+## 14. Final checklist
 
 - `cargo fmt`, `cargo clippy -- -D warnings`, and `cargo test` are clean.
 - There is no `unwrap()` outside tests. Every `expect`, `assert`, and `panic` has a
@@ -322,6 +417,9 @@ that:
   public `bool` parameters with unclear meaning.
 - Public types derive `Debug` and the applicable common traits.
 - No `.clone()` exists only to satisfy the borrow checker.
+- No error is silently discarded.
+- Async code doesn't block, every spawned task is tracked, and every external await has a
+  timeout.
 - Every `unsafe` block has a `// SAFETY:` comment and every `unsafe fn` has `# Safety`
   docs.
 - Every item has a doc comment with a one-line summary.
@@ -332,6 +430,9 @@ that:
 - **Bevy:** if `Cargo.toml` depends on `bevy` or `bevy_ecs`, read
   `skill/rust-best-practices/references/bevy.md` and the `styleguide/rust/bevy/` rules
   first. Some general advice is wrong for systems.
+- **Tokio services:** use the `rust-async` skill.
+- **Reviewing existing Rust:** use the `rust-review` skill, which ranks findings by these
+  rules' priorities.
 
 ## Sources
 
@@ -340,5 +441,12 @@ The rules in `styleguide/rust/` tagged `beautiful-rust` were distilled from
 Morgan Linton). That project synthesizes the Google Rust Style Guide, the Rust API
 Guidelines, Effective Rust, Rust Design Patterns, and Microsoft's Pragmatic Rust
 Guidelines. Rules tagged `google-style` come directly from the Google Rust Style Guide.
+Rules tagged `rust-skills` were distilled from
+[rust-skills](https://github.com/leonardomso/rust-skills) (MIT, Copyright (c) 2025 Leonardo Maldonado).
+Rust-skills rules that conflict with house rules were not merged: thiserror for
+libraries, anyhow for applications, `# Errors` doc sections, single-letter lifetimes and
+type parameters, `impl Into<T>` everywhere, `#![deny(...)]` in source, and nightly-only
+APIs.
+
 Where those sources conflict with this styleguide's house rules (SNAFU instead of
 anyhow/thiserror, no `# Errors` docs, preludes allowed), the house rules win.
